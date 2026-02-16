@@ -2,41 +2,48 @@
 
 Ein interaktives 3D Sonnensystem, gebaut mit Three.js.
 
-## Version 1.0 - Kickoff
+## Version 1.1
 
-Dies ist die erste Version unseres Sonnensystem-Projekts. Sie dient als Grundlage für zukünftige Updates und neue Features.
+### Neuerungen gegenüber Version 1.0
 
-## Features
+#### 🔥 Verbesserte Sonne
+- **Fire Shader** - Animierte Flammen-Textur mit Simplex-Noise
+- **Mehrlagige Corona** - 4 gestaffelte Glüh-Effekte für realistische Atmosphäre
+- **Sonnen-Strahlen** - Leuchtende Ray-Lines, die vom Körper ausgehen
+- **Partikel-Effekte** - Pulsierende Funkenströme
 
-### 🎮 Interaktivität
+### Features
+
+#### 🎮 Interaktivität
 - **3D-Navigation**: Rotieren, Zoomen und Schieben mit der Maus
 - **Orbit Controls**: Intuitives Steuern der Kamera
 - **Planet-Info**: Klick auf beliebigen Planeten für detaillierte Informationen
 
-### 🪐 Objekte
-- **Sonne** mit Glow-Effekt
+#### 🪐 Objekte
+- **Sonne** mit neuem Fire-Effekt, Corona und Strahlen
 - **8 Planeten** mit realistischen Farben und Größen
 - **Umlaufbahnen** mit Inklation (geneigte Bahnebenen)
 - **Monde** für Erde, Mars, Jupiter, Saturn, Uranus und Neptun
 - **Saturn-Ringe**
 - **Atmosphären** bei Erde und anderen Planeten
 
-### ⚙️ Steuerung
-- **Geschwindigkeit**: Umschalten zwischen 0.2x, 0.5x, 1x, 2x, 5x
+#### ⚙️ Steuerung
+- **Geschwindigkeit**: Umschalten zwischen 0.2x, 0.5x, 1x, 2x, 5x (**Default: 0.2x**)
 - **Labels**: Planeten-Namen ein-/ausblenden
 - **Monde**: Anzeige der Monde umschalten
 - **Bahnen**: Umlaufbahn-Linien ein-/ausblenden
 - **Reset**: Kamera zurück zur Standard-Position
 
-### ✨ Visual Effects
+#### ✨ Visual Effects
 - **Sternenhintergrund** mit Tausenden von Sternen
-- **Beleuchtungssystem** mit multiples Lichtquellen
+- **Beleuchtungssystem** mit mehreren Lichtquellen
 - **Tiefeneffekte** durch Fog
-- **Reflexionen** auf den Planetenoberflächen
+- **Feuer-Sonne** mit animated GLSL Shader
 
 ## Technologie
 
 - **Three.js** r134 - 3D Rendering Engine
+- **Custom GLSL Shaders** - Für Fire-Effekt
 - **Pure JavaScript** - Keine Frameworks
 - **Responsive Design** - Funktioniert auf verschiedenen Bildschirmgrößen
 
