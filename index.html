@@ -45,7 +45,7 @@
         <button class="btn" onclick="toggleLbl()">🏷 Labels</button>
         <button class="btn" onclick="toggleMoons()">🌙 Monde</button>
         <button class="btn" onclick="toggleOrbits()">◯ Bahnen</button>
-        <button class="btn" onclick="cycleSpd()">⏩ <span id="spdDisp">1x</span></button>
+        <button class="btn" onclick="cycleSpd()">⏩ <span id="spdDisp">0.2x</span></button>
     </div>
 </header>
 
@@ -84,9 +84,8 @@ var showMoons = true;
 var showOrbits = true;
 var spdMul = 1;
 var SPDS = [0.2, 0.5, 1, 2, 5];
-var spdIdx = 2;
+var spdIdx = 0; // GEÄNDERT: Default auf 0.2x (Index 0)
 
-// Für Sonnen-Effekte
 var sunParticles, sunRays;
 
 function init() {
@@ -125,8 +124,11 @@ function init() {
     scene.add(ptLight);
     
     mkStars();
-    mkEnhancedSun();  // NEUE VERSION!
+    mkEnhancedSun();
     mkPlanets();
+    
+    // Set initial speed to 0.2x
+    spdMul = SPDS[0];
     
     window.addEventListener('resize', onResize);
     renderer.domElement.addEventListener('pointerdown', onClick);
@@ -136,11 +138,9 @@ function init() {
     animate();
 }
 
-// ★★★ NEUE ENHANCED SONNE ★★★
 function mkEnhancedSun() {
     var dd = DB.sun;
     
-    // FIRE SHADER
     var vertShader = `
         varying vec3 vNormal;
         varying vec3 vPos;
@@ -238,10 +238,8 @@ function mkEnhancedSun() {
     sunMesh.userData = {tp:'sun', id:'sun', isSun:true};
     scene.add(sunMesh);
     
-    // Store reference for animation
     sunMesh.userData.shaderMat = sunMat;
     
-    // Corona Layers
     [14, 18, 24, 35].forEach(function(rad, idx) {
         var opacities = [0.12, 0.08, 0.04, 0.015];
         var colors = [0xff6600, 0xff4400, 0xff2200, 0xff1100];
@@ -260,10 +258,7 @@ function mkEnhancedSun() {
     
     pltObjs.push({mesh: sunMesh, cfg: {id:'sun', r:dd.rad, s:0, d:0}});
     
-    // SUN RAYS
     createSunRays();
-    
-    // SUN PARTICLES
     createSunParticles();
 }
 
@@ -537,19 +532,16 @@ function animate(t) {
     
     var timeSec = t * 0.001;
     
-    // Update sun shader time
     pltObjs.forEach(function(p) {
         if(p.cfg.s === 0 && p.mesh.userData.isSun && p.mesh.userData.shaderMat) {
             p.mesh.userData.shaderMat.uniforms.time.value = timeSec;
         }
     });
     
-    // Sun rays rotation
     if(sunRays) {
         sunRays.rotation.y = timeSec * 0.03;
     }
     
-    // Sun particles animation
     if(sunParticles) {
         var pos = sunParticles.geometry.attributes.position;
         var orig = sunParticles.userData.origins;
@@ -569,9 +561,8 @@ function animate(t) {
         pos.needsUpdate = true;
     }
     
-    // Planet animation
     pltObjs.forEach(function(p){
-        if(p.cfg.s === 0) return; // Skip sun
+        if(p.cfg.s === 0) return;
         
         var u = p.mesh.userData;
         u.ang += dt * p.cfg.s * 0.35 * spdMul;
