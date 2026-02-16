@@ -46,17 +46,6 @@ Dies ist die erste Version unseres Sonnensystem-Projekts. Sie dient als Grundlag
 2. Die `index.html` in einem modernen Browser öffnen
 3. Internetverbindung erforderlich (lädt Three.js vom CDN)
 
-## Zukünftige Pläne
-
-Diese Version ist der Startpunkt. Geplante Features könnten sein:
-
-- Realistische Planeten-Texturen
-- Asteroidengürtel zwischen Mars und Jupiter
-- Kometen mit Schweif
-- Planetarium-Modus mit zusätzlichen Infos
-- Mehr Monde und deren Details
-- Eventuell VR-Unterstützung
-
 ---
 
 Viel Spaß mit der Erkundung unseres Sonnensystems! 🚀
