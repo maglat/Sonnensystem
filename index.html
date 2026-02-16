@@ -24,8 +24,46 @@
         
         .hint { position: fixed; bottom: 12px; right: 15px; color: #334; font-size: 0.6rem; text-align: right; z-index: 50; }
         
-        .infobox { position: fixed; bottom: 20px; left: 20px; background: rgba(8, 12, 22, 0.94); border: 1px solid rgba(100, 150, 200, 0.15); border-radius: 16px; padding: 20px; width: 265px; z-index: 200; animation: slideUp 0.35s ease; }
-        @keyframes slideUp{ from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+        /* NEW INFOBOX STYLE */
+        .infobox { 
+            position: fixed; bottom: 20px; left: 20px; 
+            background: rgba(10, 15, 30, 0.95); 
+            border: 1px solid rgba(60, 80, 120, 0.3); 
+            border-radius: 16px; 
+            padding: 20px; 
+            width: 290px; 
+            z-index: 200; 
+            animation: slideUp 0.35s ease;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+        
+        .infobox h2 { color: #00d4ff; margin: 0 0 4px; font-size: 1.35rem; }
+        .infobox .subtitle { color: #557; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .infobox .desc { color: #9aa; font-size: 0.8rem; line-height: 1.5; margin-bottom: 15px; }
+        
+        .infobox .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .infobox .stat { background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 8px; }
+        .infobox .stat-label { font-size: 0.52rem; color: #556; text-transform: uppercase; }
+        .infobox .stat-val { font-size: 0.85rem; color: #ccc; margin-top: 2px; }
+        
+        .infobox .extra-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .infobox .extra-stat { background: rgba(0,100,150,0.12); padding: 6px 4px; border-radius: 6px; text-align: center; }
+        .infobox .extra-label { font-size: 0.48rem; color: #557; text-transform: uppercase; }
+        .infobox .extra-val { font-size: 0.7rem; color: #88ccff; margin-top: 2px; }
+        
+        .infobox .close-btn {
+            position: absolute; top: 10px; right: 10px;
+            width: 22px; height: 22px; border: none;
+            background: rgba(255,255,255,0.08); color: #667;
+            border-radius: 50%; cursor: pointer; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .infobox .close-btn:hover { background: rgba(255,80,80,0.3); color: #fff; }
+
+        @media(max-width: 600px) {
+            .infobox { width: calc(100% - 30px); left: 15px; bottom: 10px; }
+        }
     </style>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
@@ -52,16 +90,68 @@
 <div class="hint">Ziehen:Rotieren · Scroll:Zoomen · Klick:Details</div>
 
 <script>
+// ============ ERWEITERTE DATENBANK ============
 var DB = {
-    sun: {nm:'Sonne', sb:'Unser Stern', ds:'Zentrum des Sonnensystems.', df:'-', dg:'1.39 mio km', ob:'-', mn:'-', cl:0xffff00, emit:0xffaa00, rad:16},
-    mercury: {nm:'Merkur', sb:'Klein & Schnell', ds:'Kleinster Planet.', df:'58 mio', dg:'4,879 km', ob:'88 T', mn:'0', cl:0xa0a0a0, inc:7.0},
-    venus: {nm:'Venus', sb:'Glühend Heiss', ds:'Heissester Planet.', df:'108 mio', dg:'12,104 km', ob:'225 T', mn:'0', cl:0xe8c88a, inc:3.4},
-    earth: {nm:'Erde', sb:'Blauer Planet', ds:'Unsere Heimat.', df:'150 mio', dg:'12,742 km', ob:'365 T', mn:'1', cl:0x2299ff, atm:0x66aaff, hasClouds:true, hasDetailedAtmos:true, mns:[{r:0.4, d:4, s:12}]},
-    mars: {nm:'Mars', sb:'Der Rote', ds:'Der rote Planet.', df:'228 mio', dg:'6,779 km', ob:'687 T', mn:'2', cl:0xdd4422, inc:1.85, mns:[{r:0.25, d:2.5, s:8}, {r:0.2, d:3.5, s:6}]},
-    jupiter: {nm:'Jupiter', sb:'Der Riese', ds:'Größter Planet.', df:'778 mio', dg:'139,820 km', ob:'12 J', mn:'95', cl:0xddaa77, inc:1.3, mns:[{r:0.8, d:8, s:4}, {r:0.7, d:10, s:3}, {r:0.9, d:13, s:2}, {r:0.8, d:16, s:1.5}]},
-    saturn: {nm:'Saturn', sb:'Mit Ring', ds:'Mit Ringsystem.', df:'1.4 mia', dg:'116,460 km', ob:'29 J', mn:'146', cl:0xeedd99, inc:2.5, rng:true, mns:[{r:0.6, d:9, s:5}, {r:0.4, d:12, s:3}]},
-    uranus: {nm:'Uranus', sb:'Geneigt', ds:'Rotiert seitlich.', df:'2.9 mia', dg:'50,724 km', ob:'84 J', mn:'28', cl:0x77ccdd, inc:0.77, mns:[{r:0.4, d:7, s:3}]},
-    neptune: {nm:'Neptun', sb:'Windy', ds:'Windigster Planet.', df:'4.5 mia', dg:'49,244 km', ob:'165 J', mn:'16', cl:0x4455cc, inc:1.77, mns:[{r:0.4, d:6, s:4}]}
+    sun: {
+        nm:'Sonne', sb:'Unser Stern', ds:'Zentrum des Sonnensystems - ein Gelber Zwerg.',
+        df:'-', dg:'1.39 Mio. km', ob:'-', mn:'-',
+        cl:0xffff00, emit:0xffaa00, rad:16,
+        temp: '5.500°C', gravity: '274 m/s²', dayLength: '~25 Tage'
+    },
+    mercury: {
+        nm:'Merkur', sb:'Klein & Schnell', ds:'Kleinster Planet - fast keine Atmosphäre.',
+        df:'57.9 Mio.', dg:'4,879 km', ob:'88 Tage', mn:'0',
+        cl:0xa0a0a0, inc:7.0,
+        temp: '167°C / -183°C', gravity: '3.7 m/s²', dayLength: '59 Tage'
+    },
+    venus: {
+        nm:'Venus', sb:'Glühend Heiss', ds:'Heißester Planet - dichte CO₂-Atmosphäre.',
+        df:'108.2 Mio.', dg:'12,104 km', ob:'225 Tage', mn:'0',
+        cl:0xe8c88a, inc:3.4,
+        temp: '465°C', gravity: '8.9 m/s²', dayLength: '243 Tage'
+    },
+    earth: {
+        nm:'Erde', sb:'Blauer Planet', ds:'Unsere Heimat - einziger Planet mit flüssigem Wasser.',
+        df:'149.6 Mio.', dg:'12,742 km', ob:'365.25 Tage', mn:'1',
+        cl:0x2299ff, atm:0x66aaff, hasClouds:true, hasDetailedAtmos:true,
+        mns:[{r:0.4, d:4, s:12}],
+        temp: '15°C ∅', gravity: '9.8 m/s²', dayLength: '24 Stunden'
+    },
+    mars: {
+        nm:'Mars', sb:'Der Rote', ds:'Der rote Planet - größte Vulkane im Sonnensystem.',
+        df:'227.9 Mio.', dg:'6,779 km', ob:'687 Tage', mn:'2',
+        cl:0xdd4422, inc:1.85,
+        mns:[{r:0.25, d:2.5, s:8}, {r:0.2, d:3.5, s:6}],
+        temp: '-65°C ∅', gravity: '3.7 m/s²', dayLength: '24.6 Std'
+    },
+    jupiter: {
+        nm:'Jupiter', sb:'Der Riese', ds:'Größter Planet - Gasriese mit berühmtem Rotem Fleck.',
+        df:'778.5 Mio.', dg:'139,820 km', ob:'11.9 Jahre', mn:'95',
+        cl:0xddaa77, inc:1.3,
+        mns:[{r:0.8, d:8, s:4}, {r:0.7, d:10, s:3}, {r:0.9, d:13, s:2}, {r:0.8, d:16, s:1.5}],
+        temp: '-110°C ∅', gravity: '24.8 m/s²', dayLength: '9.9 Std'
+    },
+    saturn: {
+        nm:'Saturn', sb:'Mit Ring', ds:'Berühmtes Ringsystem aus Eis und Gestein.',
+        df:'1.43 Mrd.', dg:'116,460 km', ob:'29.4 Jahre', mn:'146',
+        cl:0xeedd99, inc:2.5, rng:true,
+        mns:[{r:0.6, d:9, s:5}, {r:0.4, d:12, s:3}],
+        temp: '-140°C ∅', gravity: '10.4 m/s²', dayLength: '10.7 Std'
+    },
+    uranus: {
+        nm:'Uranus', sb:'Geneigt', ds:'Rotiert seitlich - wurde 1781 entdeckt.',
+        df:'2.87 Mrd.', dg:'50,724 km', ob:'84 Jahre', mn:'28',
+        cl:0x77ccdd, inc:0.77,
+        mns:[{r:0.4, d:7, s:3}],
+        temp: '-195°C ∅', gravity: '8.7 m/s²', dayLength: '17.2 Std'
+    },
+    neptune: {
+        nm:'Neptun', sb:'Windy', ds:'Äußerster Planet - stärkste Winde im Sonnensystem.',
+        df:'4.51 Mrd.', dg:'49,244 km', ob:'164.8 Jahre', mn:'16',
+        cl:0x4455cc, inc:1.77,
+        mns:[{r:0.4, d:6, s:4}],
+        temp: '-200°C ∅', gravity: '11.0 m/s²', dayLength: '16.1 Std'
+    }
 };
 
 var CFG = [
@@ -137,7 +227,8 @@ function init() {
     animate();
 }
 
-// ============ ENHANCED SUN ============
+// ============ REST VOM CODE (SUN, STARS, PLANETS) ============
+
 function mkEnhancedSun() {
     var dd = DB.sun;
     
@@ -343,9 +434,7 @@ function createSunParticles() {
     scene.add(sunParticles);
 }
 
-// ============ DETAILED EARTH ATMOSPHERE ============
 function createDetailedAtmosphere(group, radius) {
-    // Multi-layer Atmosphere
     var layers = [
         {r: radius * 1.08, op: 0.15, col: 0x4499ff},
         {r: radius * 1.12, op: 0.10, col: 0x66bbff},
@@ -366,7 +455,6 @@ function createDetailedAtmosphere(group, radius) {
         group.add(mesh);
     });
     
-    // Custom shader atmosphere glow
     var atmoVS = `
         varying vec3 vNormal;
         void main() {
@@ -377,7 +465,6 @@ function createDetailedAtmosphere(group, radius) {
     
     var atmoFS = `
         varying vec3 vNormal;
-        
         void main() {
             float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
             vec3 deepBlue = vec3(0.2, 0.4, 0.9);
@@ -405,10 +492,9 @@ function createDetailedAtmosphere(group, radius) {
         new THREE.SphereGeometry(radius * 1.33, 32, 32),
         atmoMat
     );
-    atmoMesh.userData = {isAtmo: true}; // Mark for animation
+    atmoMesh.userData = {isAtmo: true};
     group.add(atmoMesh);
     
-    // Clouds
     var cloudGeo = new THREE.SphereGeometry(radius * 1.02, 32, 32);
     var cloudMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
@@ -418,11 +504,10 @@ function createDetailedAtmosphere(group, radius) {
         depthWrite: false
     });
     var clouds = new THREE.Mesh(cloudGeo, cloudMat);
-    clouds.userData = {isCloud: true}; // Mark for separate rotation
+    clouds.userData = {isCloud: true};
     group.add(clouds);
 }
 
-// ============ STANDARD PLANETS ============
 function mkStars() {
     var positions = [];
     for(var i = 0; i < 5000; i++) {
@@ -472,11 +557,7 @@ function mkPlanets() {
         grp.userData = {tp: 'plt', id: cf.id, ang: Math.random() * Math.PI * 2, spd: cf.s, dst: cf.d, orbitGroup: orbitGroup};
         
         var geo = new THREE.SphereGeometry(cf.r, 36, 36);
-        var mat = new THREE.MeshStandardMaterial({
-            color: dd.cl, 
-            roughness: dd.rs || 0.5, 
-            metalness: 0.15
-        });
+        var mat = new THREE.MeshStandardMaterial({color: dd.cl, roughness: dd.rs || 0.5, metalness: 0.15});
         
         var ms = new THREE.Mesh(geo, mat);
         ms.rotation.z = cf.t;
@@ -485,7 +566,6 @@ function mkPlanets() {
         ms.userData = {id: cf.id};
         grp.add(ms);
         
-        // Einfache Atmosphäre (falls vorhanden und nicht Erde mit Detail-Atmos)
         if(dd.atm && !dd.hasDetailedAtmos) {
             var at = new THREE.Mesh(
                 new THREE.SphereGeometry(cf.r * 1.03, 24, 24),
@@ -494,7 +574,6 @@ function mkPlanets() {
             ms.add(at);
         }
         
-        // DETAILLIERTE ERDE ATMOSPHÄRE!
         if(cf.id === 'earth') {
             createDetailedAtmosphere(ms, cf.r);
         }
@@ -571,6 +650,7 @@ function onClick(e) {
     }
 }
 
+// ============ NEUE INFOBOX MIT EXTRA STATS ============
 var currInfoId = null;
 
 function shwInf(id) {
@@ -583,17 +663,25 @@ function shwInf(id) {
     
     var div = document.createElement('div');
     div.className = 'infobox';
-    div.innerHTML = '<button onclick="this.parentElement.remove();currInfoId=null" style="position:absolute;top:8px;right:10px;width:24px;height:24px;border:none;background:rgba(255,255,255,0.1);color:#889;border-radius:50%;cursor:pointer;font-size:1rem;">×</button>' +
-        '<h2 style="font-size:1.3rem;color:#00d4ff;margin:0 0 2px;">'+d.nm+'</h2>' +
-        '<div style="font-size:0.6rem;color:#557;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">'+d.sb+'</div>' +
-        '<p style="font-size:0.8rem;color:#99a;line-height:1.5;margin:0;">'+d.ds+'</p>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px;">' +
-        '<div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:8px;"><div style="font-size:0.55rem;color:#567;text-transform:uppercase;">Entfernung</div><div style="font-size:0.8rem;">'+d.df+'</div></div>' +
-        '<div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:8px;"><div style="font-size:0.55rem;color:#567;text-transform:uppercase;">Ø</div><div style="font-size:0.8rem;">'+d.dg+'</div></div>' +
-        '<div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:8px;"><div style="font-size:0.55rem;color:#567;text-transform:uppercase;">Umlauf</div><div style="font-size:0.8rem;">'+d.ob+'</div></div>' +
-        '<div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:8px;"><div style="font-size:0.55rem;color:#567;text-transform:uppercase;">Monde</div><div style="font-size:0.8rem;">'+d.mn+'</div></div>' +
+    div.innerHTML = 
+        '<button class="close-btn" onclick="this.parentElement.remove();currInfoId=null">×</button>' +
+        '<h2>' + (id === 'earth' ? '🌍' : id === 'mars' ? '🔴' : id === 'jupiter' ? '🟤' : id === 'saturn' ? '🪔' : id === 'sun' ? '☀️' : '') + ' ' + d.nm + '</h2>' +
+        '<div class="subtitle">' + d.sb + '</div>' +
+        '<p class="desc">' + d.ds + '</p>' +
+        
+        '<div class="stats-grid">' +
+            '<div class="stat"><div class="stat-label">Entfernung</div><div class="stat-val">' + d.df + '</div></div>' +
+            '<div class="stat"><div class="stat-label">Ø Durchmesser</div><div class="stat-val">' + d.dg + '</div></div>' +
+            '<div class="stat"><div class="stat-label">Umlaufzeit</div><div class="stat-val">' + d.ob + '</div></div>' +
+            '<div class="stat"><div class="stat-label">Monde</div><div class="stat-val">' + d.mn + '</div></div>' +
         '</div>' +
-        (d.inc !== undefined ? '<div style="margin-top:10px;font-size:0.65rem;color:#556;">Inklation: '+d.inc+'°</div>' : '');
+        
+        '<div class="extra-grid">' +
+            '<div class="extra-stat"><div class="extra-label">Temp.</div><div class="extra-val">' + d.temp + '</div></div>' +
+            '<div class="extra-stat"><div class="extra-label">Gravitation</div><div class="extra-val">' + d.gravity + '</div></div>' +
+            '<div class="extra-stat"><div class="extra-label">Tag/Nacht</div><div class="extra-val">' + d.dayLength + '</div></div>' +
+        '</div>';
+    
     document.body.appendChild(div);
 }
 
@@ -627,17 +715,14 @@ function animate(t) {
     
     var timeSec = t * 0.001;
     
-    // Sun shader update
     pltObjs.forEach(function(p) {
         if(p.cfg.s === 0 && p.mesh.userData.isSun && p.mesh.userData.shaderMat) {
             p.mesh.userData.shaderMat.uniforms.time.value = timeSec;
         }
     });
     
-    // Sun rays
     if(sunRays) sunRays.rotation.y = timeSec * 0.03;
     
-    // Sun particles
     if(sunParticles) {
         var pos = sunParticles.geometry.attributes.position;
         var orig = sunParticles.userData.origins;
@@ -657,7 +742,6 @@ function animate(t) {
         pos.needsUpdate = true;
     }
     
-    // Planets
     pltObjs.forEach(function(p){
         if(p.cfg.s === 0) return;
         
@@ -667,16 +751,14 @@ function animate(t) {
         
         if(p.inner) p.inner.rotation.y += dt * 1.5 * spdMul;
         
-        // Clouds and atmosphere rotation for Earth
         if(p.cfg.id === 'earth' && p.inner) {
             p.inner.children.forEach(function(child) {
                 if(child.userData && child.userData.isCloud) {
-                    child.rotation.y += dt * 0.3 * spdMul; // Faster than earth!
+                    child.rotation.y += dt * 0.3 * spdMul;
                 }
             });
         }
         
-        // Moon animation
         if(p.inner) {
             p.inner.children.forEach(function(child){
                 if(child.isGroup) {
