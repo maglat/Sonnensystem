@@ -86,6 +86,9 @@ var spdMul = 1;
 var SPDS = [0.2, 0.5, 1, 2, 5];
 var spdIdx = 2;
 
+// Für Sonnen-Effekte
+var sunParticles, sunRays;
+
 function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020208);
@@ -122,7 +125,7 @@ function init() {
     scene.add(ptLight);
     
     mkStars();
-    mkSun();
+    mkEnhancedSun();  // NEUE VERSION!
     mkPlanets();
     
     window.addEventListener('resize', onResize);
@@ -133,13 +136,189 @@ function init() {
     animate();
 }
 
-function mkStars() {
-    var positions = [];
+// ★★★ NEUE ENHANCED SONNE ★★★
+function mkEnhancedSun() {
+    var dd = DB.sun;
     
-    for(var i = 0; i < 5000; i++) {
-        var r = 600 + Math.random() * 1500;
+    // FIRE SHADER
+    var vertShader = `
+        varying vec3 vNormal;
+        varying vec3 vPos;
+        void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vPos = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `;
+    
+    var fragShader = `
+        uniform float time;
+        varying vec3 vNormal;
+        varying vec3 vPos;
+        
+        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+        vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+        
+        float snoise(vec3 v) {
+            const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+            const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+            vec3 i = floor(v + dot(v, C.yyy));
+            vec3 x0 = v - i + dot(i, C.xxx);
+            vec3 g = step(x0.yzx, x0.xyz);
+            vec3 l = 1.0 - g;
+            vec3 i1 = min(g.xyz, l.zxy);
+            vec3 i2 = max(g.xyz, l.zxy);
+            vec3 x1 = x0 - i1 + C.xxx;
+            vec3 x2 = x0 - i2 + C.yyy;
+            vec3 x3 = x0 - D.yyy;
+            i = mod289(i);
+            vec4 p = permute(permute(permute(i.z + vec4(0.0,i1.z,i2.z,1.0)) + i.y + vec4(0.0,i1.y,i2.y,1.0)) + i.x + vec4(0.0,i1.x,i2.x,1.0));
+            float n_ = 0.142857142857;
+            vec3 ns = n_ * D.wyz - D.xzx;
+            vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+            vec4 x_ = floor(j * ns.z);
+            vec4 y_ = floor(j - 7.0 * x_);
+            vec4 x = x_ * ns.x + ns.yyyy;
+            vec4 y = y_ * ns.x + ns.yyyy;
+            vec4 h = 1.0 - abs(x) - abs(y);
+            vec4 b0 = vec4(x.xy,y.xy);
+            vec4 b1 = vec4(x.zw,y.zw);
+            vec4 s0 = floor(b0)*2.0+1.0;
+            vec4 s1 = floor(b1)*2.0+1.0;
+            vec4 sh = -step(h,vec4(0.0));
+            vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+            vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+            vec3 p0 = vec3(a0.xy,h.x);
+            vec3 p1 = vec3(a0.zw,h.y);
+            vec3 p2 = vec3(a1.xy,h.z);
+            vec3 p3 = vec3(a1.zw,h.w);
+            vec4 norm = taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+            p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
+            vec4 m = max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);
+            m=m*m;
+            return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+        }
+        
+        void main() {
+            float n1 = snoise(vec3(vPos.x*2.0+vPos.z*0.5, vPos.y*2.0+time*1.2, time*0.4));
+            float n2 = snoise(vec3(vPos.x*4.0+time*0.8, vPos.y*4.0, time*1.5));
+            
+            vec3 cBlack = vec3(0.05, 0.0, 0.0);
+            vec3 cRed = vec3(0.9, 0.1, 0.0);
+            vec3 cOrange = vec3(1.0, 0.5, 0.0);
+            vec3 cYellow = vec3(1.0, 0.85, 0.2);
+            vec3 cWhite = vec3(1.0, 1.0, 0.95);
+            
+            float fire = n1*0.5+n2*0.5+0.5;
+            
+            vec3 color;
+            if(fire < 0.25) color = mix(cBlack, cRed, fire/0.25);
+            else if(fire < 0.45) color = mix(cRed, cOrange, (fire-0.25)/0.2);
+            else if(fire < 0.65) color = mix(cOrange, cYellow, (fire-0.45)/0.2);
+            else color = mix(cYellow, cWhite, (fire-0.65)/0.35);
+            
+            float fresnel = pow(1.0-abs(dot(vNormal, vec3(0.0,0.0,1.0))), 2.0);
+            color = mix(color, cYellow, fresnel*0.4);
+            color *= 0.92 + 0.08*sin(time*2.5);
+            
+            gl_FragColor = vec4(color, 1.0);
+        }
+    `;
+    
+    var sunMat = new THREE.ShaderMaterial({
+        uniforms: { time: {value: 0} },
+        vertexShader: vertShader,
+        fragmentShader: fragShader
+    });
+    
+    var sunGeo = new THREE.SphereGeometry(dd.rad, 64, 64);
+    var sunMesh = new THREE.Mesh(sunGeo, sunMat);
+    sunMesh.userData = {tp:'sun', id:'sun', isSun:true};
+    scene.add(sunMesh);
+    
+    // Store reference for animation
+    sunMesh.userData.shaderMat = sunMat;
+    
+    // Corona Layers
+    [14, 18, 24, 35].forEach(function(rad, idx) {
+        var opacities = [0.12, 0.08, 0.04, 0.015];
+        var colors = [0xff6600, 0xff4400, 0xff2200, 0xff1100];
+        
+        var glow = new THREE.Mesh(
+            new THREE.SphereGeometry(rad, 32, 32),
+            new THREE.MeshBasicMaterial({
+                color: colors[idx],
+                transparent: true,
+                opacity: opacities[idx],
+                side: THREE.BackSide
+            })
+        );
+        scene.add(glow);
+    });
+    
+    pltObjs.push({mesh: sunMesh, cfg: {id:'sun', r:dd.rad, s:0, d:0}});
+    
+    // SUN RAYS
+    createSunRays();
+    
+    // SUN PARTICLES
+    createSunParticles();
+}
+
+function createSunRays() {
+    var numRays = 50;
+    var positions = [];
+    var colors = [];
+    
+    for(var i = 0; i < numRays; i++) {
         var theta = Math.random() * Math.PI * 2;
         var phi = Math.acos(2 * Math.random() - 1);
+        
+        var r = 16;
+        var x1 = r * Math.sin(phi) * Math.cos(theta);
+        var y1 = r * Math.sin(phi) * Math.sin(theta);
+        var z1 = r * Math.cos(phi);
+        
+        var len = 10 + Math.random() * 15;
+        var x2 = x1 * (1 + len/r);
+        var y2 = y1 * (1 + len/r);
+        var z2 = z1 * (1 + len/r);
+        
+        x2 += (Math.random()-0.5) * 4;
+        y2 += (Math.random()-0.5) * 4;
+        
+        positions.push(x1, y1, z1, x2, y2, z2);
+        
+        var brightness = 0.5 + Math.random() * 0.5;
+        colors.push(1, 0.85, brightness, 1);
+        colors.push(1, 0.6, 0.2, 0);
+    }
+    
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+    
+    var mat = new THREE.LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending
+    });
+    
+    sunRays = new THREE.LineSegments(geo, mat);
+    scene.add(sunRays);
+}
+
+function createSunParticles() {
+    var count = 120;
+    var positions = [];
+    
+    for(var i = 0; i < count; i++) {
+        var theta = Math.random() * Math.PI * 2;
+        var phi = Math.acos(2 * Math.random() - 1);
+        var r = 17 + Math.random() * 4;
         
         positions.push(
             r * Math.sin(phi) * Math.cos(theta),
@@ -152,46 +331,45 @@ function mkStars() {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     
     var mat = new THREE.PointsMaterial({
+        color: 0xffcc66,
+        size: 0.6,
+        transparent: true,
+        opacity: 0.5,
+        sizeAttenuation: true,
+        blending: THREE.AdditiveBlending
+    });
+    
+    sunParticles = new THREE.Points(geo, mat);
+    sunParticles.userData.origins = positions.slice();
+    sunParticles.userData.phases = [];
+    for(var i = 0; i < count; i++) {
+        sunParticles.userData.phases.push(Math.random() * Math.PI * 2);
+    }
+    scene.add(sunParticles);
+}
+
+function mkStars() {
+    var positions = [];
+    for(var i = 0; i < 5000; i++) {
+        var r = 600 + Math.random() * 1500;
+        var theta = Math.random() * Math.PI * 2;
+        var phi = Math.acos(2 * Math.random() - 1);
+        positions.push(
+            r * Math.sin(phi) * Math.cos(theta),
+            r * Math.sin(phi) * Math.sin(theta),
+            r * Math.cos(phi)
+        );
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    var mat = new THREE.PointsMaterial({
         color: 0xffffff,
         size: 1.5,
         sizeAttenuation: true,
         transparent: true,
         opacity: 1.0
     });
-    
     scene.add(new THREE.Points(geo, mat));
-}
-
-function mkSun() {
-    var dd = DB.sun;
-    
-    var geo = new THREE.SphereGeometry(dd.rad, 48, 48);
-    var mat = new THREE.MeshStandardMaterial({
-        color: dd.cl,
-        emissive: dd.emit,
-        emissiveIntensity: 2.5,
-        roughness: 0.15,
-        metalness: 0
-    });
-    var mesh = new THREE.Mesh(geo, mat);
-    mesh.userData = {tp: 'sun', id: 'sun'};
-    scene.add(mesh);
-    
-    [1.2, 1.6, 2.2].forEach(function(sc, i){
-        var colors = [0xffdd44, 0xff8822, 0xff4400];
-        var glow = new THREE.Mesh(
-            new THREE.SphereGeometry(dd.rad * sc, 24, 24),
-            new THREE.MeshBasicMaterial({
-                color: colors[i],
-                transparent: true,
-                opacity: 0.2 - i * 0.05,
-                side: THREE.BackSide
-            })
-        );
-        mesh.add(glow);
-    });
-    
-    pltObjs.push({mesh: mesh, cfg: {id: 'sun', r: dd.rad, s: 0, d: 0}});
 }
 
 function mkPlanets() {
@@ -206,11 +384,7 @@ function mkPlanets() {
         var orbitPoints = [];
         for(var op = 0; op <= 96; op++) {
             var oAngle = (op / 96) * Math.PI * 2;
-            orbitPoints.push(new THREE.Vector3(
-                Math.cos(oAngle) * cf.d,
-                0,
-                Math.sin(oAngle) * cf.d
-            ));
+            orbitPoints.push(new THREE.Vector3(Math.cos(oAngle) * cf.d, 0, Math.sin(oAngle) * cf.d));
         }
         var orbitGeo = new THREE.BufferGeometry().setFromPoints(orbitPoints);
         var orbitMat = new THREE.LineBasicMaterial({ color: 0x335566, transparent: true, opacity: 0.35 });
@@ -223,12 +397,7 @@ function mkPlanets() {
         grp.userData = {tp: 'plt', id: cf.id, ang: Math.random() * Math.PI * 2, spd: cf.s, dst: cf.d, orbitGroup: orbitGroup};
         
         var geo = new THREE.SphereGeometry(cf.r, 36, 36);
-        var mat = new THREE.MeshStandardMaterial({
-            color: dd.cl,
-            roughness: dd.rs || 0.5,
-            metalness: 0.15
-        });
-        
+        var mat = new THREE.MeshStandardMaterial({color: dd.cl, roughness: dd.rs || 0.5, metalness: 0.15});
         var ms = new THREE.Mesh(geo, mat);
         ms.rotation.z = cf.t;
         ms.castShadow = true;
@@ -237,18 +406,14 @@ function mkPlanets() {
         grp.add(ms);
         
         if(dd.atm) {
-            var at = new THREE.Mesh(
-                new THREE.SphereGeometry(cf.r * 1.03, 24, 24),
-                new THREE.MeshBasicMaterial({color: dd.atm, transparent: true, opacity: 0.2, side: THREE.BackSide})
-            );
+            var at = new THREE.Mesh(new THREE.SphereGeometry(cf.r * 1.03, 24, 24),
+                new THREE.MeshBasicMaterial({color: dd.atm, transparent: true, opacity: 0.2, side: THREE.BackSide}));
             ms.add(at);
         }
         
         if(cf.rn || dd.rng) {
-            var rg = new THREE.Mesh(
-                new THREE.RingGeometry(cf.r * 1.3, cf.r * 2.5, 56),
-                new THREE.MeshBasicMaterial({color: 0xccbbaa, side: THREE.DoubleSide, transparent: true, opacity: 0.7})
-            );
+            var rg = new THREE.Mesh(new THREE.RingGeometry(cf.r * 1.3, cf.r * 2.5, 56),
+                new THREE.MeshBasicMaterial({color: 0xccbbaa, side: THREE.DoubleSide, transparent: true, opacity: 0.7}));
             rg.rotation.x = Math.PI / 2;
             ms.add(rg);
         }
@@ -256,12 +421,10 @@ function mkPlanets() {
         if(dd.mns && dd.mns.length > 0) {
             var moonGroup = new THREE.Group();
             ms.add(moonGroup);
-            
             dd.mns.forEach(function(mn){
                 var mGeo = new THREE.SphereGeometry(mn.r, 16, 16);
                 var mMat = new THREE.MeshStandardMaterial({color: 0xbbbb99, roughness: 0.8, metalness: 0.1});
                 var mMesh = new THREE.Mesh(mGeo, mMat);
-                
                 var mAng = Math.random() * Math.PI * 2;
                 mMesh.userData = {tp: 'moon', pid: cf.id, ang: mAng, spd: mn.s, dst: mn.d};
                 mMesh.visible = showMoons;
@@ -271,8 +434,7 @@ function mkPlanets() {
         }
         
         var cnvs = document.createElement('canvas');
-        cnvs.width = 256;
-        cnvs.height = 56;
+        cnvs.width = 256; cnvs.height = 56;
         var ctx = cnvs.getContext('2d');
         ctx.font = 'bold 22px system-ui';
         ctx.textAlign = 'center';
@@ -345,16 +507,8 @@ function shwInf(id) {
     document.body.appendChild(div);
 }
 
-window.camReset = function() { 
-    camera.position.set(0, 150, 300); 
-    controls.target.set(0, 0, 0); 
-};
-
-window.toggleLbl = function() { 
-    shwLbl = !shwLbl; 
-    lbls.forEach(function(l){ l.visible = shwLbl; }); 
-};
-
+window.camReset = function() { camera.position.set(0, 150, 300); controls.target.set(0, 0, 0); };
+window.toggleLbl = function() { shwLbl = !shwLbl; lbls.forEach(function(l){ l.visible = shwLbl; }); };
 window.toggleMoons = function() {
     showMoons = !showMoons;
     pltObjs.forEach(function(p){
@@ -365,19 +519,8 @@ window.toggleMoons = function() {
         }
     });
 };
-
-window.toggleOrbits = function() {
-    showOrbits = !showOrbits;
-    orbitLines.forEach(function(line){
-        line.visible = showOrbits;
-    });
-};
-
-window.cycleSpd = function() {
-    spdIdx = (spdIdx + 1) % SPDS.length;
-    spdMul = SPDS[spdIdx];
-    document.getElementById('spdDisp').textContent = spdMul + 'x';
-};
+window.toggleOrbits = function() { showOrbits = !showOrbits; orbitLines.forEach(function(line){ line.visible = showOrbits; }); };
+window.cycleSpd = function() { spdIdx = (spdIdx + 1) % SPDS.length; spdMul = SPDS[spdIdx]; document.getElementById('spdDisp').textContent = spdMul + 'x'; };
 
 function onResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -392,12 +535,46 @@ function animate(t) {
     lastT = t;
     if(dt > 0.1) return;
     
+    var timeSec = t * 0.001;
+    
+    // Update sun shader time
+    pltObjs.forEach(function(p) {
+        if(p.cfg.s === 0 && p.mesh.userData.isSun && p.mesh.userData.shaderMat) {
+            p.mesh.userData.shaderMat.uniforms.time.value = timeSec;
+        }
+    });
+    
+    // Sun rays rotation
+    if(sunRays) {
+        sunRays.rotation.y = timeSec * 0.03;
+    }
+    
+    // Sun particles animation
+    if(sunParticles) {
+        var pos = sunParticles.geometry.attributes.position;
+        var orig = sunParticles.userData.origins;
+        var phase = sunParticles.userData.phases;
+        
+        for(var i = 0; i < pos.count; i++) {
+            var i3 = i * 3;
+            var drift = (Math.sin(timeSec * 0.4 + phase[i]) * 0.5 + 0.5) * 2.5;
+            var ox = orig[i3];
+            var oy = orig[i3+1];
+            var oz = orig[i3+2];
+            var dist = Math.sqrt(ox*ox + oy*oy + oz*oz);
+            pos.array[i3] = ox + (ox/dist) * drift;
+            pos.array[i3+1] = oy + (oy/dist) * drift;
+            pos.array[i3+2] = oz + (oz/dist) * drift;
+        }
+        pos.needsUpdate = true;
+    }
+    
+    // Planet animation
     pltObjs.forEach(function(p){
-        if(p.cfg.s === 0) return;
+        if(p.cfg.s === 0) return; // Skip sun
         
         var u = p.mesh.userData;
         u.ang += dt * p.cfg.s * 0.35 * spdMul;
-        
         p.mesh.position.set(Math.cos(u.ang) * u.dst, 0, Math.sin(u.ang) * u.dst);
         
         if(p.inner) p.inner.rotation.y += dt * 1.5 * spdMul;
