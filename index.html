@@ -15,16 +15,28 @@
         @keyframes rot { to { transform: rotate(360deg); } }
         .loadtxt { margin-top: 15px; color: #445; letter-spacing: 2px; font-size: 0.8rem; }
         
-        header { position: fixed; top: 0; left: 0; right: 0; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 100; }
+        header { position: fixed; top: 0; left: 0; right: 0; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent; z-index: 100; }
         h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: 2px; color: #bbb; }
         
         .btns { display: flex; gap: 8px; }
         .btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: #999; padding: 6px 12px; border-radius: 12px; font-size: 0.7rem; cursor: pointer; }
         .btn:hover { background: #00d4ff; color: #000; }
         
+        .btn-live {
+            background: rgba(0, 100, 0, 0.3);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+        .btn-live:hover { background: #00ff0033; }
+        .btn-live.active {
+            background: #00ff00;
+            color: #000;
+            box-shadow: 0 0 15px #00ff0066;
+        }
+        
         .hint { position: fixed; bottom: 12px; right: 15px; color: #334; font-size: 0.6rem; text-align: right; z-index: 50; }
         
-        /* NEW INFOBOX STYLE */
+        /* INFOBOX */
         .infobox { 
             position: fixed; bottom: 20px; left: 20px; 
             background: rgba(10, 15, 30, 0.95); 
@@ -83,6 +95,7 @@
         <button class="btn" onclick="toggleLbl()">🏷 Labels</button>
         <button class="btn" onclick="toggleMoons()">🌙 Monde</button>
         <button class="btn" onclick="toggleOrbits()">◯ Bahnen</button>
+        <button class="btn btn-live" id="liveBtn" onclick="toggleLiveMode()">⚡ LIVE</button>
         <button class="btn" onclick="cycleSpd()">⏩ <span id="spdDisp">0.2x</span></button>
     </div>
 </header>
@@ -90,68 +103,32 @@
 <div class="hint">Ziehen:Rotieren · Scroll:Zoomen · Klick:Details</div>
 
 <script>
-// ============ ERWEITERTE DATENBANK ============
-var DB = {
-    sun: {
-        nm:'Sonne', sb:'Unser Stern', ds:'Zentrum des Sonnensystems - ein Gelber Zwerg.',
-        df:'-', dg:'1.39 Mio. km', ob:'-', mn:'-',
-        cl:0xffff00, emit:0xffaa00, rad:16,
-        temp: '5.500°C', gravity: '274 m/s²', dayLength: '~25 Tage'
-    },
-    mercury: {
-        nm:'Merkur', sb:'Klein & Schnell', ds:'Kleinster Planet - fast keine Atmosphäre.',
-        df:'57.9 Mio.', dg:'4,879 km', ob:'88 Tage', mn:'0',
-        cl:0xa0a0a0, inc:7.0,
-        temp: '167°C / -183°C', gravity: '3.7 m/s²', dayLength: '59 Tage'
-    },
-    venus: {
-        nm:'Venus', sb:'Glühend Heiss', ds:'Heißester Planet - dichte CO₂-Atmosphäre.',
-        df:'108.2 Mio.', dg:'12,104 km', ob:'225 Tage', mn:'0',
-        cl:0xe8c88a, inc:3.4,
-        temp: '465°C', gravity: '8.9 m/s²', dayLength: '243 Tage'
-    },
-    earth: {
-        nm:'Erde', sb:'Blauer Planet', ds:'Unsere Heimat - einziger Planet mit flüssigem Wasser.',
-        df:'149.6 Mio.', dg:'12,742 km', ob:'365.25 Tage', mn:'1',
-        cl:0x2299ff, atm:0x66aaff, hasClouds:true, hasDetailedAtmos:true,
-        mns:[{r:0.4, d:4, s:12}],
-        temp: '15°C ∅', gravity: '9.8 m/s²', dayLength: '24 Stunden'
-    },
-    mars: {
-        nm:'Mars', sb:'Der Rote', ds:'Der rote Planet - größte Vulkane im Sonnensystem.',
-        df:'227.9 Mio.', dg:'6,779 km', ob:'687 Tage', mn:'2',
-        cl:0xdd4422, inc:1.85,
-        mns:[{r:0.25, d:2.5, s:8}, {r:0.2, d:3.5, s:6}],
-        temp: '-65°C ∅', gravity: '3.7 m/s²', dayLength: '24.6 Std'
-    },
-    jupiter: {
-        nm:'Jupiter', sb:'Der Riese', ds:'Größter Planet - Gasriese mit berühmtem Rotem Fleck.',
-        df:'778.5 Mio.', dg:'139,820 km', ob:'11.9 Jahre', mn:'95',
-        cl:0xddaa77, inc:1.3,
-        mns:[{r:0.8, d:8, s:4}, {r:0.7, d:10, s:3}, {r:0.9, d:13, s:2}, {r:0.8, d:16, s:1.5}],
-        temp: '-110°C ∅', gravity: '24.8 m/s²', dayLength: '9.9 Std'
-    },
-    saturn: {
-        nm:'Saturn', sb:'Mit Ring', ds:'Berühmtes Ringsystem aus Eis und Gestein.',
-        df:'1.43 Mrd.', dg:'116,460 km', ob:'29.4 Jahre', mn:'146',
-        cl:0xeedd99, inc:2.5, rng:true,
-        mns:[{r:0.6, d:9, s:5}, {r:0.4, d:12, s:3}],
-        temp: '-140°C ∅', gravity: '10.4 m/s²', dayLength: '10.7 Std'
-    },
-    uranus: {
-        nm:'Uranus', sb:'Geneigt', ds:'Rotiert seitlich - wurde 1781 entdeckt.',
-        df:'2.87 Mrd.', dg:'50,724 km', ob:'84 Jahre', mn:'28',
-        cl:0x77ccdd, inc:0.77,
-        mns:[{r:0.4, d:7, s:3}],
-        temp: '-195°C ∅', gravity: '8.7 m/s²', dayLength: '17.2 Std'
-    },
-    neptune: {
-        nm:'Neptun', sb:'Windy', ds:'Äußerster Planet - stärkste Winde im Sonnensystem.',
-        df:'4.51 Mrd.', dg:'49,244 km', ob:'164.8 Jahre', mn:'16',
-        cl:0x4455cc, inc:1.77,
-        mns:[{r:0.4, d:6, s:4}],
-        temp: '-200°C ∅', gravity: '11.0 m/s²', dayLength: '16.1 Std'
-    }
+// ===== ECHTZEIT SYSTEM =====
+// Kepler-Elemente (J2000 Epoch)
+var KEPLER = {
+    sun:     {nm:'Sonne', sb:'Unser Stern', ds:'Zentrum des Sonnensystems - ein Gelber Zwerg.', temp: '5.500°C', gravity: '274 m/s²', dayLength: '~25 Tage'},
+    mercury: { a: 0.38709927, e: 0.20563521, i: 7.00497902, L: 252.25032350, w: 77.45779628, node: 48.33076593,
+               nm:'Merkur', sb:'Klein & Schnell', ds:'Kleinster Planet - fast keine Atmosphäre.', temp: '167°C / -183°C', gravity: '3.7 m/s²', dayLength: '59 Tage'},
+    venus:   { a: 0.72333566, e: 0.00677672, i: 3.39467605, L: 181.97909950, w: 131.60246718, node: 76.67984855,
+               nm:'Venus', sb:'Glühend Heiss', ds:'Heißester Planet - dichte CO₂-Atmosphäre.', temp: '465°C', gravity: '8.9 m/s²', dayLength: '243 Tage'},
+    earth:   { a: 1.00000261, e: 0.01671123, i:-0.00001531, L: 100.46457166, w: 96.93943526, node: 0.0,
+               nm:'Erde', sb:'Blauer Planet', ds:'Unsere Heimat - einziger Planet mit flüssigem Wasser.', temp: '15°C ∅', gravity: '9.8 m/s²', dayLength: '24 Std', hasDetailedAtmos:true,
+               mns:[{r:0.4, d:4, s:12}], moonParams:{a:0.002569,e:0.0549006,i:5.145,L:218.32,w:83.353,node:125.08}},
+    mars:    { a: 1.52371034, e: 0.09339410, i: 1.84969142, L: 355.45328865, w: 24.24950377, node: 49.55953888,
+               nm:'Mars', sb:'Der Rote', ds:'Der rote Planet - größte Vulkane im Sonnensystem.', temp: '-65°C ∅', gravity: '3.7 m/s²', dayLength: '24.6 Std',
+               mns:[{r:0.25,d:2.5,s:8},{r:0.2,d:3.5,s:6}]},
+    jupiter: { a: 5.20288700, e: 0.04838624, i: 1.30439695, L: 34.35151914, w: 14.72838212, node:100.47390909,
+               nm:'Jupiter', sb:'Der Riese', ds:'Größter Planet - Gasriese mit berühmtem Rotem Fleck.', temp: '-110°C ∅', gravity: '24.8 m/s²', dayLength: '9.9 Std',
+               mns:[{r:0.8,d:8,s:4},{r:0.7,d:10,s:3},{r:0.9,d:13,s:2},{r:0.8,d:16,s:1.5}]},
+    saturn:  { a: 9.53667594, e: 0.05386179, i: 2.48599187, L: 49.95424423, w: 92.59887831, node:113.66242448,
+               nm:'Saturn', sb:'Mit Ring', ds:'Berühmtes Ringsystem aus Eis und Gestein.', temp: '-140°C ∅', gravity: '10.4 m/s²', dayLength: '10.7 Std', rng:true,
+               mns:[{r:0.6,d:9,s:5},{r:0.4,d:12,s:3}]},
+    uranus:  {a: 19.18916464, e: 0.04725844, i: 0.77263783, L: 313.23897568, w: 170.86837292, node: 74.01692503,
+               nm:'Uranus', sb:'Geneigt', ds:'Rotiert seitlich - wurde 1781 entdeckt.', temp: '-195°C ∅', gravity: '8.7 m/s²', dayLength: '17.2 Std',
+               mns:[{r:0.4,d:7,s:3}]},
+    neptune: {a: 30.06992276, e: 0.00859048, i: 1.77004347, L: 304.87916641, w: 44.96463227, node:131.78422574,
+              nm:'Neptun', sb:'Windy', ds:'Äußerster Planet - stärkste Winde im Sonnensystem.', temp: '-200°C ∅', gravity: '11.0 m/s²', dayLength: '16.1 Std',
+              mns:[{r:0.4,d:6,s:4}]}
 };
 
 var CFG = [
@@ -165,6 +142,7 @@ var CFG = [
     {id:'neptune', r:3.3, d:325, s:0.006, t:0.49}
 ];
 
+// Globals
 var scene, camera, renderer, controls;
 var pltObjs = [];
 var orbitLines = [];
@@ -173,6 +151,9 @@ var shwLbl = true;
 var showMoons = true;
 var showOrbits = true;
 var spdMul = 1;
+var isLiveMode = false;
+var simulatedDays = 0;
+var simulationSpeed = 20; // Tage pro Sekunde
 var SPDS = [0.2, 0.5, 1, 2, 5];
 var spdIdx = 0;
 
@@ -183,7 +164,7 @@ function init() {
     scene.background = new THREE.Color(0x020208);
     scene.fog = new THREE.Fog(0x020208, 500, 3500);
     
-    camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 6000);
+    camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 6000);
     camera.position.set(0, 150, 300);
     
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -202,16 +183,9 @@ function init() {
     var sunLight = new THREE.DirectionalLight(0xfff8e8, 3.0);
     sunLight.position.set(0, 0, 0);
     scene.add(sunLight);
-    
-    var hemiLight = new THREE.HemisphereLight(0x8899bb, 0x222233, 0.8);
-    scene.add(hemiLight);
-    
-    var ambLight = new THREE.AmbientLight(0x333344, 0.5);
-    scene.add(ambLight);
-    
-    var ptLight = new THREE.PointLight(0xffffff, 2, 1000);
-    ptLight.position.set(0, 0, 0);
-    scene.add(ptLight);
+    scene.add(new THREE.HemisphereLight(0x8899bb, 0x222233, 0.8));
+    scene.add(new THREE.AmbientLight(0x333344, 0.5));
+    scene.add(new THREE.PointLight(0xffffff, 2, 1000));
     
     mkStars();
     mkEnhancedSun();
@@ -227,547 +201,342 @@ function init() {
     animate();
 }
 
-// ============ REST VOM CODE (SUN, STARS, PLANETS) ============
+// ===== ECHTZEIT BERECHNUNG =====
+function calculateKeplerPosition(kep, days) {
+    var M = (kep.L - kep.w + days * 0.9856474) % 360;
+    if(M < 0) M += 360;
+    var MRad = M * Math.PI / 180;
+    
+    var r = kep.a * (1 - kep.e * Math.cos(MRad));
+    var v = MRad + kep.e * Math.sin(MRad);
+    
+    var x = r * Math.cos(v);
+    var z = r * Math.sin(v);
+    
+    var node = (kep.node || 0) * Math.PI / 180;
+    var i = (kep.i || 0) * Math.PI / 180;
+    
+    var x3 = x * Math.cos(node) - z * Math.cos(i) * Math.sin(node);
+    var y3 = z * Math.sin(i);
+    var z3 = x * Math.sin(node) + z * Math.cos(i) * Math.cos(node);
+    
+    return { x: x3 * 50, y: y3 * 50, z: z3 * 50 };
+}
+
+function calculateMoonPosition(moonParams, days, earthPos) {
+    var M = (moonParams.L + 13.176396 * days) % 360;
+    var MRad = M * Math.PI / 180;
+    var r = moonParams.a * (1 - moonParams.e * Math.cos(MRad));
+    var v = MRad + moonParams.e * Math.sin(MRad);
+    
+    var x = r * Math.cos(v);
+    var z = r * Math.sin(v);
+    
+    var node = moonParams.node * Math.PI / 180;
+    var i = moonParams.i * Math.PI / 180;
+    
+    var mx = x * Math.cos(node) - z * Math.cos(i) * Math.sin(node);
+    var my = z * Math.sin(i);
+    var mz = x * Math.sin(node) + z * Math.cos(i) * Math.cos(node);
+    
+    // Relativ zur Erde
+    return {
+        x: earthPos.x + mx * 5,
+        y: earthPos.y + my * 5,
+        z: earthPos.z + mz * 5
+    };
+}
+
+// ===== HAUPTFUNKTIONEN =====
 
 function mkEnhancedSun() {
-    var dd = DB.sun;
+    var dd = { rad: 16 };
     
     var vertShader = `
-        varying vec3 vNormal;
-        varying vec3 vPos;
+        varying vec3 vNormal; varying vec3 vPos;
         void main() {
-            vNormal = normalize(normalMatrix * normal);
-            vPos = position;
+            vNormal = normalize(normalMatrix * normal); vPos = position;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `;
     
     var fragShader = `
-        uniform float time;
-        varying vec3 vNormal;
-        varying vec3 vPos;
-        
+        uniform float time; varying vec3 vNormal; varying vec3 vPos;
         vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
         vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
         vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
         vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
         
         float snoise(vec3 v) {
-            const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-            const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-            vec3 i = floor(v + dot(v, C.yyy));
-            vec3 x0 = v - i + dot(i, C.xxx);
-            vec3 g = step(x0.yzx, x0.xyz);
-            vec3 l = 1.0 - g;
-            vec3 i1 = min(g.xyz, l.zxy);
+            const vec2 C = vec2(1.0/6.0, 1.0/3.0); const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+            vec3 i = floor(v + dot(v, C.yyy)); vec3 x0 = v - i + dot(i, C.xxx);
+            vec3 g = step(x0.yzx, x0.xyz); vec3 l = 1.0 - g; vec3 i1 = min(g.xyz, l.zxy);
             vec3 i2 = max(g.xyz, l.zxy);
-            vec3 x1 = x0 - i1 + C.xxx;
-            vec3 x2 = x0 - i2 + C.yyy;
-            vec3 x3 = x0 - D.yyy;
+            vec3 x1 = x0 - i1 + C.xxx; vec3 x2 = x0 - i2 + C.yyy; vec3 x3 = x0 - D.yyy;
             i = mod289(i);
             vec4 p = permute(permute(permute(i.z + vec4(0.0,i1.z,i2.z,1.0)) + i.y + vec4(0.0,i1.y,i2.y,1.0)) + i.x + vec4(0.0,i1.x,i2.x,1.0));
-            float n_ = 0.142857142857;
-            vec3 ns = n_ * D.wyz - D.xzx;
+            float n_ = 0.142857142857; vec3 ns = n_ * D.wyz - D.xzx;
             vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-            vec4 x_ = floor(j * ns.z);
-            vec4 y_ = floor(j - 7.0 * x_);
-            vec4 x = x_ * ns.x + ns.yyyy;
-            vec4 y = y_ * ns.x + ns.yyyy;
+            vec4 x_ = floor(j * ns.z); vec4 y_ = floor(j - 7.0 * x_);
+            vec4 x = x_ * ns.x + ns.yyyy; vec4 y = y_ * ns.x + ns.yyyy;
             vec4 h = 1.0 - abs(x) - abs(y);
-            vec4 b0 = vec4(x.xy,y.xy);
-            vec4 b1 = vec4(x.zw,y.zw);
-            vec4 s0 = floor(b0)*2.0+1.0;
-            vec4 s1 = floor(b1)*2.0+1.0;
-            vec4 sh = -step(h,vec4(0.0));
-            vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+            vec4 b0 = vec4(x.xy,y.xy); vec4 b1 = vec4(x.zw,y.zw);
+            vec4 s0 = floor(b0)*2.0+1.0; vec4 s1 = floor(b1)*2.0+1.0;
+            vec4 sh = -step(h,vec4(0.0)); vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
             vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
-            vec3 p0 = vec3(a0.xy,h.x);
-            vec3 p1 = vec3(a0.zw,h.y);
-            vec3 p2 = vec3(a1.xy,h.z);
-            vec3 p3 = vec3(a1.zw,h.w);
+            vec3 p0 = vec3(a0.xy,h.x); vec3 p1 = vec3(a0.zw,h.y); vec3 p2 = vec3(a1.xy,h.z); vec3 p3 = vec3(a1.zw,h.w);
             vec4 norm = taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
-            p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
-            vec4 m = max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);
-            m=m*m;
-            return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+            p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
+            vec4 m = max(0.6 - vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)), 0.0);
+            m = m * m; return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
         }
         
         void main() {
             float n1 = snoise(vec3(vPos.x*2.0+vPos.z*0.5, vPos.y*2.0+time*1.2, time*0.4));
             float n2 = snoise(vec3(vPos.x*4.0+time*0.8, vPos.y*4.0, time*1.5));
-            
-            vec3 cBlack = vec3(0.05, 0.0, 0.0);
-            vec3 cRed = vec3(0.9, 0.1, 0.0);
-            vec3 cOrange = vec3(1.0, 0.5, 0.0);
-            vec3 cYellow = vec3(1.0, 0.85, 0.2);
-            vec3 cWhite = vec3(1.0, 1.0, 0.95);
-            
+            vec3 cBlack = vec3(0.05, 0.0, 0.0), cRed = vec3(0.9, 0.1, 0.0);
+            vec3 cOrange = vec3(1.0, 0.5, 0.0), cYellow = vec3(1.0, 0.85, 0.2), cWhite = vec3(1.0, 1.0, 0.95);
             float fire = n1*0.5+n2*0.5+0.5;
-            
-            vec3 color;
-            if(fire < 0.25) color = mix(cBlack, cRed, fire/0.25);
-            else if(fire < 0.45) color = mix(cRed, cOrange, (fire-0.25)/0.2);
-            else if(fire < 0.65) color = mix(cOrange, cYellow, (fire-0.45)/0.2);
-            else color = mix(cYellow, cWhite, (fire-0.65)/0.35);
-            
-            float fresnel = pow(1.0-abs(dot(vNormal, vec3(0.0,0.0,1.0))), 2.0);
-            color = mix(color, cYellow, fresnel*0.4);
+            vec3 color = fire < 0.25 ? mix(cBlack,cRed,fire/0.25) :
+                        fire < 0.45 ? mix(cRed,cOrange,(fire-0.25)/0.2) :
+                        fire < 0.65 ? mix(cOrange,cYellow,(fire-0.45)/0.2) :
+                        mix(cYellow,cWhite,(fire-0.65)/0.35);
+            float fresnel = pow(1.0-abs(dot(vNormal,vec3(0.0,0.0,1.0))),2.0);
+            color = mix(color,cYellow,fresnel*0.4);
             color *= 0.92 + 0.08*sin(time*2.5);
-            
-            gl_FragColor = vec4(color, 1.0);
+            gl_FragColor = vec4(color,1.0);
         }
     `;
     
-    var sunMat = new THREE.ShaderMaterial({
-        uniforms: { time: {value: 0} },
-        vertexShader: vertShader,
-        fragmentShader: fragShader
-    });
-    
-    var sunGeo = new THREE.SphereGeometry(dd.rad, 64, 64);
-    var sunMesh = new THREE.Mesh(sunGeo, sunMat);
+    var sunMat = new THREE.ShaderMaterial({uniforms:{time:{value:0}},vertexShader:vertShader,fragmentShader:fragShader});
+    var sunMesh = new THREE.Mesh(new THREE.SphereGeometry(dd.rad, 64, 64), sunMat);
     sunMesh.userData = {tp:'sun', id:'sun', isSun:true};
-    scene.add(sunMesh);
-    
     sunMesh.userData.shaderMat = sunMat;
+    scene.add(sunMesh);
+    sunMesh.userData.kep = KEPLER.sun;
     
     [14, 18, 24, 35].forEach(function(rad, idx) {
-        var opacities = [0.12, 0.08, 0.04, 0.015];
         var colors = [0xff6600, 0xff4400, 0xff2200, 0xff1100];
-        
-        var glow = new THREE.Mesh(
-            new THREE.SphereGeometry(rad, 32, 32),
-            new THREE.MeshBasicMaterial({
-                color: colors[idx],
-                transparent: true,
-                opacity: opacities[idx],
-                side: THREE.BackSide
-            })
-        );
-        scene.add(glow);
+        var ops = [0.12, 0.08, 0.04, 0.015];
+        scene.add(new THREE.Mesh(new THREE.SphereGeometry(rad, 32, 32),
+            new THREE.MeshBasicMaterial({color:colors[idx], transparent:true, opacity:ops[idx], side:THREE.BackSide})));
     });
     
-    pltObjs.push({mesh: sunMesh, cfg: {id:'sun', r:dd.rad, s:0, d:0}});
-    
-    createSunRays();
-    createSunParticles();
+    pltObjs.push({mesh:sunMesh, cfg:{id:'sun', r:dd.rad, s:0, d:0}, isPlanet:false});
+    createSunRays(); createSunParticles();
 }
 
-function createSunRays() {
-    var numRays = 50;
-    var positions = [];
-    var colors = [];
-    
-    for(var i = 0; i < numRays; i++) {
-        var theta = Math.random() * Math.PI * 2;
-        var phi = Math.acos(2 * Math.random() - 1);
-        
-        var r = 16;
-        var x1 = r * Math.sin(phi) * Math.cos(theta);
-        var y1 = r * Math.sin(phi) * Math.sin(theta);
-        var z1 = r * Math.cos(phi);
-        
-        var len = 10 + Math.random() * 15;
-        var x2 = x1 * (1 + len/r);
-        var y2 = y1 * (1 + len/r);
-        var z2 = z1 * (1 + len/r);
-        
-        x2 += (Math.random()-0.5) * 4;
-        y2 += (Math.random()-0.5) * 4;
-        
-        positions.push(x1, y1, z1, x2, y2, z2);
-        
-        var brightness = 0.5 + Math.random() * 0.5;
-        colors.push(1, 0.85, brightness, 1);
-        colors.push(1, 0.6, 0.2, 0);
+function createSunRays(){
+    var num=50, pos=[], cols=[];
+    for(var i=0;i<num;i++){
+        var th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1), r=16;
+        var x1=r*Math.sin(ph)*Math.cos(th), y1=r*Math.sin(ph)*Math.sin(th), z1=r*Math.cos(ph);
+        var len=10+Math.random()*15, x2=x1*(1+len/r), y2=y1*(1+len/r), z2=z1*(1+len/r);
+        x2+=(Math.random()-0.5)*4; y2+=(Math.random()-0.5)*4;
+        pos.push(x1,y1,z1,x2,y2,z2);
+        var br=.5+Math.random()*.5; cols.push(1,.85,br,1,1,.6,.2,0);
     }
-    
-    var geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
-    
-    var mat = new THREE.LineBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.4,
-        blending: THREE.AdditiveBlending
-    });
-    
-    sunRays = new THREE.LineSegments(geo, mat);
+    var geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,4));
+    sunRays=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.4,blending:THREE.AdditiveBlending}));
     scene.add(sunRays);
 }
 
-function createSunParticles() {
-    var count = 120;
-    var positions = [];
-    
-    for(var i = 0; i < count; i++) {
-        var theta = Math.random() * Math.PI * 2;
-        var phi = Math.acos(2 * Math.random() - 1);
-        var r = 17 + Math.random() * 4;
-        
-        positions.push(
-            r * Math.sin(phi) * Math.cos(theta),
-            r * Math.sin(phi) * Math.sin(theta),
-            r * Math.cos(phi)
-        );
+function createSunParticles(){
+    var count=120, pos=[];
+    for(var i=0;i<count;i++){
+        var th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1), r=17+Math.random()*4;
+        pos.push(r*Math.sin(ph)*Math.cos(th),r*Math.sin(ph)*Math.sin(th),r*Math.cos(ph));
     }
-    
-    var geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    
-    var mat = new THREE.PointsMaterial({
-        color: 0xffcc66,
-        size: 0.6,
-        transparent: true,
-        opacity: 0.5,
-        sizeAttenuation: true,
-        blending: THREE.AdditiveBlending
-    });
-    
-    sunParticles = new THREE.Points(geo, mat);
-    sunParticles.userData.origins = positions.slice();
-    sunParticles.userData.phases = [];
-    for(var i = 0; i < count; i++) {
-        sunParticles.userData.phases.push(Math.random() * Math.PI * 2);
-    }
+    var geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    sunParticles = new THREE.Points(geo,new THREE.PointsMaterial({color:0xffcc66,size:.6,transparent:true,opacity:.5,sizeAttenuation:true,blending:THREE.AdditiveBlending}));
+    sunParticles.userData.origins=pos.slice(); sunParticles.userData.phases=[];
+    for(var i=0;i<count;i++) sunParticles.userData.phases.push(Math.random()*Math.PI*2);
     scene.add(sunParticles);
 }
 
-function createDetailedAtmosphere(group, radius) {
-    var layers = [
-        {r: radius * 1.08, op: 0.15, col: 0x4499ff},
-        {r: radius * 1.12, op: 0.10, col: 0x66bbff},
-        {r: radius * 1.17, op: 0.05, col: 0x88ccff},
-        {r: radius * 1.27, op: 0.02, col: 0xaaddff}
-    ];
-    
-    layers.forEach(function(l) {
-        var mesh = new THREE.Mesh(
-            new THREE.SphereGeometry(l.r, 32, 32),
-            new THREE.MeshBasicMaterial({
-                color: l.col,
-                transparent: true,
-                opacity: l.op,
-                side: THREE.BackSide
-            })
-        );
-        group.add(mesh);
-    });
-    
-    var atmoVS = `
-        varying vec3 vNormal;
-        void main() {
-            vNormal = normalize(normalMatrix * normal);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `;
-    
-    var atmoFS = `
-        varying vec3 vNormal;
-        void main() {
-            float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-            vec3 deepBlue = vec3(0.2, 0.4, 0.9);
-            vec3 lightBlue = vec3(0.4, 0.7, 1.0);
-            vec3 cyan = vec3(0.5, 0.9, 1.0);
-            
-            vec3 color = mix(deepBlue, lightBlue, intensity);
-            color = mix(color, cyan, pow(intensity, 3.0));
-            
-            float alpha = intensity * 0.5;
-            gl_FragColor = vec4(color, alpha);
-        }
-    `;
-    
-    var atmoMat = new THREE.ShaderMaterial({
-        vertexShader: atmoVS,
-        fragmentShader: atmoFS,
-        transparent: true,
-        side: THREE.BackSide,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-    });
-    
-    var atmoMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(radius * 1.33, 32, 32),
-        atmoMat
-    );
-    atmoMesh.userData = {isAtmo: true};
-    group.add(atmoMesh);
-    
-    var cloudGeo = new THREE.SphereGeometry(radius * 1.02, 32, 32);
-    var cloudMat = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.35,
-        roughness: 1.0,
-        depthWrite: false
-    });
-    var clouds = new THREE.Mesh(cloudGeo, cloudMat);
-    clouds.userData = {isCloud: true};
-    group.add(clouds);
-}
-
-function mkStars() {
-    var positions = [];
-    for(var i = 0; i < 5000; i++) {
-        var r = 600 + Math.random() * 1500;
-        var theta = Math.random() * Math.PI * 2;
-        var phi = Math.acos(2 * Math.random() - 1);
-        positions.push(
-            r * Math.sin(phi) * Math.cos(theta),
-            r * Math.sin(phi) * Math.sin(theta),
-            r * Math.cos(phi)
-        );
+function mkStars(){
+    var positions=[]; for(var i=0;i<5000;i++){
+        var r=600+Math.random()*1500, th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1);
+        positions.push(r*Math.sin(ph)*Math.cos(th),r*Math.sin(ph)*Math.sin(th),r*Math.cos(ph));
     }
-    var geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    var mat = new THREE.PointsMaterial({
-        color: 0xffffff,
-        size: 1.5,
-        sizeAttenuation: true,
-        transparent: true,
-        opacity: 1.0
-    });
-    scene.add(new THREE.Points(geo, mat));
+    scene.add(new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(positions,3)),
+        new THREE.PointsMaterial({color:0xffffff,size:1.5,sizeAttenuation:true,transparent:true,opacity:1})));
 }
 
-function mkPlanets() {
-    CFG.forEach(function(cf){
-        var dd = DB[cf.id];
-        var inc = dd.inc || 0;
+function createDetailedAtmosphere(group, radius){
+    [{r:1.08,o:.15,c:0x4499ff},{r:1.12,o:.10,c:0x66bbff},{r:1.17,o:.05,c:0x88ccff},{r:1.27,o:.02,c:0xaaddff}].forEach(l=>
+        group.add(new THREE.Mesh(new THREE.SphereGeometry(radius*l.r,32,32),
+            new THREE.MeshBasicMaterial({color:l.c,transparent:true,opacity:l.o,side:THREE.BackSide}))));
+    var av='varying vec3 vNormal;void main(){vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',af='varying vec3 vNormal;void main(){float i=pow(.7-dot(vNormal,vec3(0,0,1)),2);gl_FragColor=vec4(mix(vec3(.2,.4,.9),mix(vec3(.4,.7,1),pow(i,3)),i*.5);}';
+    var am = new THREE.ShaderMaterial({vertexShader:av,fragmentShader:af,transparent:true,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false});
+    group.add(new THREE.Mesh(new THREE.SphereGeometry(radius*1.33,32,32),am));
+    group.add(new THREE.Mesh(new THREE.SphereGeometry(radius*1.02,32,32),
+        new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.35,roughness:1,depthWrite:false})));
+}
+
+function mkPlanets(){
+    CFG.forEach(cf=>{
+        var dd = KEPLER[cf.id];
+        varKep = {a:dd.a||0, e:dd.e||0, i:dd.inc||0, L:(dd.L||0), w:(dd.w||0), node:(dd.node||0)};
         
         var orbitGroup = new THREE.Group();
-        orbitGroup.rotation.x = inc * Math.PI / 180;
+        orbitGroup.rotation.x = (dd.inc||0) * Math.PI/180;
         scene.add(orbitGroup);
         
-        var orbitPoints = [];
-        for(var op = 0; op <= 96; op++) {
-            var oAngle = (op / 96) * Math.PI * 2;
-            orbitPoints.push(new THREE.Vector3(Math.cos(oAngle) * cf.d, 0, Math.sin(oAngle) * cf.d));
-        }
-        var orbitGeo = new THREE.BufferGeometry().setFromPoints(orbitPoints);
-        var orbitMat = new THREE.LineBasicMaterial({ color: 0x335566, transparent: true, opacity: 0.35 });
-        var orbitLine = new THREE.LineLoop(orbitGeo, orbitMat);
-        orbitLine.visible = showOrbits;
-        orbitGroup.add(orbitLine);
-        orbitLines.push(orbitLine);
+        var oPts=[]; for(var o=0;o<=96;o++){var oa=(o/96)*Math.PI*2;oPts.push(new THREE.Vector3(Math.cos(oa)*cf.d,0,Math.sin(oa)*cf.d));}
+        var ol = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(oPts),
+            new THREE.LineBasicMaterial({color:0x335566,transparent:true,opacity:0.35}));
+        ol.visible=showOrbits; orbitGroup.add(ol); orbitLines.push(ol);
         
         var grp = new THREE.Group();
-        grp.userData = {tp: 'plt', id: cf.id, ang: Math.random() * Math.PI * 2, spd: cf.s, dst: cf.d, orbitGroup: orbitGroup};
+        grp.userData={tp:'plt',id:cf.id,ang:Math.random()*Math.PI*2,spd:cf.s,dst:cf.d,kep:Kep};
         
-        var geo = new THREE.SphereGeometry(cf.r, 36, 36);
-        var mat = new THREE.MeshStandardMaterial({color: dd.cl, roughness: dd.rs || 0.5, metalness: 0.15});
-        
-        var ms = new THREE.Mesh(geo, mat);
-        ms.rotation.z = cf.t;
-        ms.castShadow = true;
-        ms.receiveShadow = true;
-        ms.userData = {id: cf.id};
+        var ms = new THREE.Mesh(new THREE.SphereGeometry(cf.r,36,36),
+            new THREE.MeshStandardMaterial({color:dd.cl,roughness:dd.rs||.5,metalness:.15}));
+        ms.rotation.z=cf.t; ms.castShadow=ms.receiveShadow=true; ms.userData={id:cf.id};
         grp.add(ms);
         
-        if(dd.atm && !dd.hasDetailedAtmos) {
-            var at = new THREE.Mesh(
-                new THREE.SphereGeometry(cf.r * 1.03, 24, 24),
-                new THREE.MeshBasicMaterial({color: dd.atm, transparent: true, opacity: 0.2, side: THREE.BackSide})
-            );
-            ms.add(at);
-        }
+        if(dd.atm && !dd.hasDetailedAtmos)
+            ms.add(new THREE.Mesh(new THREE.SphereGeometry(cf.r*1.03,24,24),
+                new THREE.MeshBasicMaterial({color:dd.atm,transparent:true,opacity:.2,side:THREE.BackSide})));
         
-        if(cf.id === 'earth') {
-            createDetailedAtmosphere(ms, cf.r);
-        }
+        if(cf.id==='earth') createDetailedAtmosphere(ms,cf.r);
         
-        if(cf.rn || dd.rng) {
-            var rg = new THREE.Mesh(
-                new THREE.RingGeometry(cf.r * 1.3, cf.r * 2.5, 56),
-                new THREE.MeshBasicMaterial({color: 0xccbbaa, side: THREE.DoubleSide, transparent: true, opacity: 0.7})
-            );
-            rg.rotation.x = Math.PI / 2;
-            ms.add(rg);
-        }
+        if(cf.rn||dd.rng) ms.add(new THREE.Mesh(new THREE.RingGeometry(cf.r*1.3,cf.r*2.5,56),
+            new THREE.MeshBasicMaterial({color:0xccbbaa,side:THREE.DoubleSide,transparent:true,opacity:.7})));
         
-        if(dd.mns && dd.mns.length > 0) {
-            var moonGroup = new THREE.Group();
-            ms.add(moonGroup);
-            dd.mns.forEach(function(mn){
-                var mGeo = new THREE.SphereGeometry(mn.r, 16, 16);
-                var mMat = new THREE.MeshStandardMaterial({color: 0xbbbb99, roughness: 0.8, metalness: 0.1});
-                var mMesh = new THREE.Mesh(mGeo, mMat);
-                var mAng = Math.random() * Math.PI * 2;
-                mMesh.userData = {tp: 'moon', pid: cf.id, ang: mAng, spd: mn.s, dst: mn.d};
-                mMesh.visible = showMoons;
-                mMesh.position.set(Math.cos(mAng) * mn.d, 0, Math.sin(mAng) * mn.d);
-                moonGroup.add(mMesh);
+        if(dd.mns&&dd.mns.length>0){
+            var mg = new THREE.Group(); ms.add(mg);
+            dd.mns.forEach(mn=>{
+                var mm = new THREE.Mesh(new THREE.SphereGeometry(mn.r,16,16),
+                    new THREE.MeshStandardMaterial({color:0xbbbb99,roughness:.8,metalness:.1}));
+                var mang = Math.random()*Math.PI*2;
+                mm.userData={tp:'moon',pid:cf.id,ang:mang,spd:mn.s,dst:mn.d};
+                if(cf.id==='earth') mm.userData.realMoon = true;
+                mm.visible=showMoons;
+                mm.position.set(Math.cos(mang)*mn.d,0,Math.sin(mang)*mn.d);
+                mg.add(mm);
             });
         }
         
-        var cnvs = document.createElement('canvas');
-        cnvs.width = 256; cnvs.height = 56;
-        var ctx = cnvs.getContext('2d');
-        ctx.font = 'bold 22px system-ui';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
-        ctx.strokeText(dd.nm, 128, 36);
-        ctx.fillText(dd.nm, 128, 36);
+        var cx=document.createElement('canvas');cx.width=256;cx.height=56;
+        var ct=cx.getContext('2d');
+        ct.font='bold 22px system-ui';ct.textAlign='center';ct.fillStyle='#fff';ct.strokeStyle='#000';ct.lineWidth=3;
+        ct.strokeText(dd.nm,128,36);ct.fillText(dd.nm,128,36);
+        var lb = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cx),transparent:true,depthTest:false}));
+        lb.scale.set(20,4.5,1);lb.position.set(0,cf.r+5,0);lb.visible=shwLbl;
+        grp.add(lb);lbls.push(lb);
         
-        var lb = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(cnvs), transparent: true, depthTest: false}));
-        lb.scale.set(20, 4.5, 1);
-        lb.position.set(0, cf.r + 5, 0);
-        lb.visible = shwLbl;
-        grp.add(lb);
-        lbls.push(lb);
-        
-        var ag = grp.userData.ang;
-        grp.position.set(Math.cos(ag) * cf.d, 0, Math.sin(ag) * cf.d);
-        
+        grp.position.set(Math.cos(grps.userData.ang)*cf.d,0,Math.sin(grps.userData.ang)*cf.d);
         orbitGroup.add(grp);
-        pltObjs.push({mesh: grp, inner: ms, cfg: cf, isPlanet: true});
+        pltObjs.push({mesh:grp,inner:ms,cfg:cf,isPlanet:true});
     });
 }
 
-function onClick(e) {
-    var mx = (e.clientX / window.innerWidth) * 2 - 1;
-    var my = -(e.clientY / window.innerHeight) * 2 + 1;
-    
-    var rc = new THREE.Raycaster();
-    rc.setFromCamera({x: mx, y: my}, camera);
-    
-    var clickables = [];
-    pltObjs.forEach(function(p){
-        if(p.inner) clickables.push(p.inner);
-        if(p.mesh) clickables.push(p.mesh);
-    });
-    
-    var hs = rc.intersectObjects(clickables, true);
-    
-    if(hs.length) {
-        var obj = hs[0].object;
-        while(obj && !obj.userData.id) obj = obj.parent;
-        if(obj && obj.userData.id) shwInf(obj.userData.id);
+function onClick(e){
+    var mx=(e.clientX/window.innerWidth)*2-1, my=-(e.clientY/window.innerHeight)*2+1;
+    var rc = new THREE.Raycaster();rc.setFromCamera({x:mx,y:my},camera);
+    var cs=[];pltObjs.forEach(p=>{if(p.inner)cs.push(p.inner);if(p.mesh)cs.push(p.mesh)});
+    var hs=rc.intersectObjects(cs,true);
+    if(hs.length){
+        var o=hs[0].object;
+        while(o&&!o.userData.id)o=o.parent;
+        if(o&&o.userData.id)shwInf(o.userData.id);
     }
 }
 
-// ============ NEUE INFOBOX MIT EXTRA STATS ============
-var currInfoId = null;
-
-function shwInf(id) {
-    if(currInfoId === id) return;
-    currInfoId = id;
-    
-    var d = DB[id];
-    var old = document.querySelector('.infobox');
-    if(old) old.remove();
-    
-    var div = document.createElement('div');
-    div.className = 'infobox';
-    div.innerHTML = 
-        '<button class="close-btn" onclick="this.parentElement.remove();currInfoId=null">×</button>' +
-        '<h2>' + (id === 'earth' ? '🌍' : id === 'mars' ? '🔴' : id === 'jupiter' ? '🟤' : id === 'saturn' ? '🪔' : id === 'sun' ? '☀️' : '') + ' ' + d.nm + '</h2>' +
-        '<div class="subtitle">' + d.sb + '</div>' +
-        '<p class="desc">' + d.ds + '</p>' +
-        
-        '<div class="stats-grid">' +
-            '<div class="stat"><div class="stat-label">Entfernung</div><div class="stat-val">' + d.df + '</div></div>' +
-            '<div class="stat"><div class="stat-label">Ø Durchmesser</div><div class="stat-val">' + d.dg + '</div></div>' +
-            '<div class="stat"><div class="stat-label">Umlaufzeit</div><div class="stat-val">' + d.ob + '</div></div>' +
-            '<div class="stat"><div class="stat-label">Monde</div><div class="stat-val">' + d.mn + '</div></div>' +
-        '</div>' +
-        
-        '<div class="extra-grid">' +
-            '<div class="extra-stat"><div class="extra-label">Temp.</div><div class="extra-val">' + d.temp + '</div></div>' +
-            '<div class="extra-stat"><div class="extra-label">Gravitation</div><div class="extra-val">' + d.gravity + '</div></div>' +
-            '<div class="extra-stat"><div class="extra-label">Tag/Nacht</div><div class="extra-val">' + d.dayLength + '</div></div>' +
-        '</div>';
-    
+var currInfoId=null;
+function shwInf(id){
+    if(currInfoId===id)return;currInfoId=id;
+    var d=KEPLER[id];var old=document.querySelector('.infobox');if(old)old.remove();
+    var div=document.createElement('div');
+    div.className='infobox';
+    var icon=(id==='earth')?'🌍':(id==='mars')?'🔴':(id==='jupiter')?'🟤':(id==='saturn')?'🪔':'';
+    div.innerHTML='<button class="close-btn" onclick="this.parentElement.remove();currInfoId=null">×</button>'+
+        '<h2>'+icon+' '+d.nm+'</h2><div class="subtitle">'+d.sb+'</div><p class="desc">'+d.ds+'</p>'+
+        '<div class="stats-grid"><div class="stat"><div class="stat-label">Entfernung</div><div class="stat-val">'+d.df+'</div></div>'+
+        '<div class="stat"><div class="stat-label">Ø</div><div class="stat-val">'+d.dg+'</div></div>'+
+        '<div class="stat"><div class="stat-label">Umlauf</div><div class="stat-val">'+d.ob+'</div></div>'+
+        '<div class="stat"><div class="stat-label">Monde</div><div class="stat-val">'+d.mn+'</div></div></div>'+
+        '<div class="extra-grid"><div class="extra-stat"><div class="extra-label">Temp.</div><div class="extra-val">'+d.temp+'</div></div>'+
+        '<div class="extra-stat"><div class="extra-label">Grav.</div><div class="extra-val">'+d.gravity+'</div></div>'+
+        '<div class="extra-stat"><div class="extra-label">Tag</div><div class="extra-val">'+d.dayLength+'</div></div></div>';
     document.body.appendChild(div);
 }
 
-window.camReset = function() { camera.position.set(0, 150, 300); controls.target.set(0, 0, 0); };
-window.toggleLbl = function() { shwLbl = !shwLbl; lbls.forEach(function(l){ l.visible = shwLbl; }); };
-window.toggleMoons = function() {
-    showMoons = !showMoons;
-    pltObjs.forEach(function(p){
-        if(p.isPlanet && p.inner) {
-            p.inner.children.forEach(function(ch){
-                if(ch.isGroup) ch.children.forEach(function(m){ m.visible = showMoons; });
-            });
-        }
-    });
-};
-window.toggleOrbits = function() { showOrbits = !showOrbits; orbitLines.forEach(function(line){ line.visible = showOrbits; }); };
-window.cycleSpd = function() { spdIdx = (spdIdx + 1) % SPDS.length; spdMul = SPDS[spdIdx]; document.getElementById('spdDisp').textContent = spdMul + 'x'; };
+window.camReset=function(){camera.position.set(0,150,300);controls.target.set(0,0,0);}
+window.toggleLbl=function(){shwLbl=!shwLbl;lbls.forEach(l=>l.visible=shwLbl);}
+window.toggleMoons=function(){
+    showMoons=!showMoons;
+    pltObjs.forEach(p=>{if(p.isPlanet&&p.inner)p.inner.children.forEach(c=>{if(c.isGroup)c.children.forEach(m=>m.visible=showMoons);});});
+}
+window.toggleOrbits=function(){showOrbits=!showOrbits;orbitLines.forEach(l=>l.visible=showOrbits);}
+window.cycleSpd=function(){spdIdx=(spdIdx+1)%SPDS.length;spdMul=SPDS[spdIdx];document.getElementById('spdDisp').textContent=spdMul+'x';}
 
-function onResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+window.toggleLiveMode=function(){
+    isLiveMode=!isLiveMode;
+    document.getElementById('liveBtn').classList.toggle('active',isLiveMode);
+    if(isLiveMode){
+        var j2000=new Date(2000,0,1,12,0,0);
+        simulatedDays=(Date.now()/864e5)-(j2000/864e5)-7300;
+    }
 }
 
-var lastT = 0;
-function animate(t) {
+function onResize(){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);}
+
+var lastT=0;
+function animate(t){
     requestAnimationFrame(animate);
-    var dt = (t - lastT) / 1000 || 0.016;
-    lastT = t;
-    if(dt > 0.1) return;
+    var dt=(t-lastT)/1000||0.016;lastT=t;if(dt>.1)return;
+    var tm=t*.001, timeSec=t*.001;
     
-    var timeSec = t * 0.001;
-    
-    pltObjs.forEach(function(p) {
-        if(p.cfg.s === 0 && p.mesh.userData.isSun && p.mesh.userData.shaderMat) {
-            p.mesh.userData.shaderMat.uniforms.time.value = timeSec;
-        }
+    pltObjs.forEach(p=>{
+        if(p.cfg.s===0&&p.mesh.userData.isSun&&p.mesh.userData.shaderMat)p.mesh.userData.shaderMat.uniforms.time.value=timeSec;
     });
     
-    if(sunRays) sunRays.rotation.y = timeSec * 0.03;
-    
-    if(sunParticles) {
-        var pos = sunParticles.geometry.attributes.position;
-        var orig = sunParticles.userData.origins;
-        var phase = sunParticles.userData.phases;
-        
-        for(var i = 0; i < pos.count; i++) {
-            var i3 = i * 3;
-            var drift = (Math.sin(timeSec * 0.4 + phase[i]) * 0.5 + 0.5) * 2.5;
-            var ox = orig[i3];
-            var oy = orig[i3+1];
-            var oz = orig[i3+2];
-            var dist = Math.sqrt(ox*ox + oy*oy + oz*oz);
-            pos.array[i3] = ox + (ox/dist) * drift;
-            pos.array[i3+1] = oy + (oy/dist) * drift;
-            pos.array[i3+2] = oz + (oz/dist) * drift;
-        }
-        pos.needsUpdate = true;
+    if(sunRays)sunRays.rotation.y=timeSec*.03;
+    if(sunParticles){
+        var pa=sunParticles.geometry.attributes.position,po=sunParticles.userData.origins,ph=sunParticles.userData.phases;
+        for(var i=0;i<pa.count;i++){
+            var i3=i*3,drift=(Math.sin(timeSec*.4+ph[i])*.5+.5)*2.5,ox=po[i3],oy=po[i3+1],oz=po[i3+2],dist=Math.sqrt(ox*ox+oy*oy+oz*oz);
+            pa.array[i3]=ox+(ox/dist)*drift;pa.array[i3+1]=oy+(oy/dist)*drift;pa.array[i3+2]=oz+(oz/dist)*drift;
+        }pa.needsUpdate=true;
     }
     
-    pltObjs.forEach(function(p){
-        if(p.cfg.s === 0) return;
+    var currentDays = isLiveMode ?
+        (Date.now()/864e5 - 10957) : // J2000 minus ~30 Jahre
+        simulatedDays + dt * simulationSpeed;
+    
+    if(!isLiveMode) simulatedDays = currentDays;
+    
+    pltObjs.forEach(p=>{
+        if(!p.isPlanet) return;
+        var Kep = p.mesh.userData.kep;
+        var pos = calculateKeplerPosition(Kep, currentDays);
+        p.mesh.position.set(pos.x, pos.y, pos.z);
         
-        var u = p.mesh.userData;
-        u.ang += dt * p.cfg.s * 0.35 * spdMul;
-        p.mesh.position.set(Math.cos(u.ang) * u.dst, 0, Math.sin(u.ang) * u.dst);
-        
-        if(p.inner) p.inner.rotation.y += dt * 1.5 * spdMul;
-        
-        if(p.cfg.id === 'earth' && p.inner) {
-            p.inner.children.forEach(function(child) {
-                if(child.userData && child.userData.isCloud) {
-                    child.rotation.y += dt * 0.3 * spdMul;
-                }
-            });
-        }
-        
-        if(p.inner) {
-            p.inner.children.forEach(function(child){
-                if(child.isGroup) {
-                    child.children.forEach(function(moon){
-                        if(moon.userData.tp === 'moon') {
-                            moon.userData.ang += dt * moon.userData.spd * 2 * spdMul;
-                            var ma = moon.userData.ang;
-                            var md = moon.userData.dst;
-                            moon.position.set(Math.cos(ma) * md, 0, Math.sin(ma) * md);
+        if(p.inner){
+            p.inner.rotation.y+=dt*1.5*(isLiveMode?0.5:spdMul);
+            
+            if(p.cfg.id==='earth'){
+                p.inner.children.forEach(c=>{if(c.userData&&c.userData.isCloud)c.rotation.y+=dt*0.3*(isLiveMode?0.5:spdMul);});
+            }
+            
+            p.inner.children.forEach(c=>{
+                if(c.isGroup){
+                    c.children.forEach(m=>{
+                        if(m.userData.tp==='moon'){
+                            if(m.userData.realMoon){
+                                var ePos = p.mesh.position.clone();
+                                var mPos = calculateMoonPosition(KEPLER.earth.moonParams, currentDays, ePos);
+                                m.position.set(mPos.x-ePos.x, 0, mPos.z-ePos.z);
+                            }else{
+                                m.userData.ang+=dt*m.userData.spd*2*(isLiveMode?0.5:spdMul);
+                                var ma=m.userData.ang,md=m.userData.dst;
+                                m.position.set(Math.cos(ma)*md,0,Math.sin(ma)*md);
+                            }
                         }
                     });
                 }
@@ -775,8 +544,7 @@ function animate(t) {
         }
     });
     
-    controls.update();
-    renderer.render(scene, camera);
+    controls.update();renderer.render(scene,camera);
 }
 
 init();
