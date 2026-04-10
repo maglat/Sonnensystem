@@ -1,58 +1,55 @@
-# 🌌 Sonnensystem
+# 🌌 Das Sonnensystem - Interaktive Reise
 
-Ein interaktives 3D Sonnensystem, gebaut mit Three.js.
+Eine visuelle, interaktive Darstellung unseres Sonnensystems mit allen 8 Planeten, der Sonne und animierten Umlaufbahnen.
 
-## Version 1.1
+## 🚀 Online ansehen
 
-### Neuerungen gegenüber Version 1.0
+**https://maglat.github.io/Sonnensystem/**
 
-#### 🔥 Verbesserte Sonne
-- **Fire Shader** - Animierte Flammen-Textur mit Simplex-Noise
-- **Mehrlagige Corona** - 4 gestaffelte Glüh-Effekte für realistische Atmosphäre
-- **Sonnen-Strahlen** - Leuchtende Ray-Lines, die vom Körper ausgehen
-- **Partikel-Effekte** - Pulsierende Funkenströme
+## ✨ Features
 
-### Features
+- **8 Planeten**: Alle Planeten von Merkur bis Neptun mit realistischer Farbcodierung
+- **Umlaufbahnen**: Planeten kreisen um die Sonne (kann ein- und ausgeschaltet werden)
+- **Saturn-Ringe**: Saturn mit charakteristischen Ringen dargestellt
+- **Sternenhimmel**: Animierter Hintergrund mit funkelnden Sternen
+- **Interaktivität**: Klicke auf Planeten für detaillierte Informationen
+- **Responsive**: Funktioniert auf Desktop und Mobile
 
-#### 🎮 Interaktivität
-- **3D-Navigation**: Rotieren, Zoomen und Schieben mit der Maus
-- **Orbit Controls**: Intuitives Steuern der Kamera
-- **Planet-Info**: Klick auf beliebigen Planeten für detaillierte Informationen
+## 🎮 Steuerung
 
-#### 🪐 Objekte
-- **Sonne** mit neuem Fire-Effekt, Corona und Strahlen
-- **8 Planeten** mit realistischen Farben und Größen
-- **Umlaufbahnen** mit Inklation (geneigte Bahnebenen)
-- **Monde** für Erde, Mars, Jupiter, Saturn, Uranus und Neptun
-- **Saturn-Ringe**
-- **Atmosphären** bei Erde und anderen Planeten
+- **Umlaufbahn/Statisch**: Wechsle zwischen animierter und statischer Ansicht
+- **Klicken**: Klicke auf einen Planeten, um Informationen zu sehen
+- **Schließen**: Klicke auf das X, um das Infopanel zu schließen
 
-#### ⚙️ Steuerung
-- **Geschwindigkeit**: Umschalten zwischen 0.2x, 0.5x, 1x, 2x, 5x (**Default: 0.2x**)
-- **Labels**: Planeten-Namen ein-/ausblenden
-- **Monde**: Anzeige der Monde umschalten
-- **Bahnen**: Umlaufbahn-Linien ein-/ausblenden
-- **Reset**: Kamera zurück zur Standard-Position
+## 🪐 Planeten-Informationen
 
-#### ✨ Visual Effects
-- **Sternenhintergrund** mit Tausenden von Sternen
-- **Beleuchtungssystem** mit mehreren Lichtquellen
-- **Tiefeneffekte** durch Fog
-- **Feuer-Sonne** mit animated GLSL Shader
+Jeder Planet zeigt:
+- **Durchmesser**
+- **Entfernung zur Sonne**
+- **Umlaufzeit**
+- **Oberflächentemperatur**
+- **Anzahl der Monde**
+- **Entdeckung**
 
-## Technologie
+## 🛠️ Technologie
 
-- **Three.js** r134 - 3D Rendering Engine
-- **Custom GLSL Shaders** - Für Fire-Effekt
-- **Pure JavaScript** - Keine Frameworks
-- **Responsive Design** - Funktioniert auf verschiedenen Bildschirmgrößen
+- HTML5 / CSS3 / JavaScript (ES6+)
+- Google Fonts (Inter)
+- Modernes CSS (Flexbox, Positionierung, Animationen)
+- Canvas-freie Animation mit requestAnimationFrame
 
-## Installation
+## 📸 Screenshots
 
-1. Repository clonen oder die HTML-Datei herunterladen
-2. Die `index.html` in einem modernen Browser öffnen
-3. Internetverbindung erforderlich (lädt Three.js vom CDN)
+Die Darstellung zeigt:
+- Die Sonne in der Mitte (glühend orange-gold)
+- 8 Umlaufbahnen in absteigendem Abstand
+- Alle Planeten in ihren realistischen Größenverhältnissen (vereinfacht)
+- Info-Panel mit detaillierten Daten bei Klick
+
+## 📝 License
+
+Open Source - frei verwendbar.
 
 ---
 
-Viel Spaß mit der Erkundung unseres Sonnensystems! 🚀
+Gemacht mit ❤️ für das Universum 🌠✨
